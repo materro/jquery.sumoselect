@@ -403,29 +403,33 @@
           cc.append(O.ftxt);
           O.optDiv.children('ul').after(P);
 
+          let timer = null;
           O.ftxt.on('input.sumo', () => {
-            const hid = O.optDiv.find('ul.options li.opt').each((ix, e) => {
-              const el = $(e),
-                { 0: opt } = el.data('opt');
-              opt.hidden = fn(el.text(), O.ftxt.val(), el);
-              el.toggleClass('hidden', opt.hidden);
-            }).not('.hidden');
+            clearTimeout(timer);
+            timer = setTimeout(function() {
+              const hid = O.optDiv.find('ul.options li.opt').each((ix, e) => {
+                const el = $(e),
+                  { 0: opt } = el.data('opt');
+                opt.hidden = fn(el.text(), O.ftxt.val(), el);
+                el.toggleClass('hidden', opt.hidden);
+              }).not('.hidden');
 
-            // Hide opt-groups with no options matched
-            O.optDiv[0].querySelectorAll('li.group').forEach(optGroup => {
-              if (optGroup.querySelector('li:not(.hidden)')) {
-                optGroup.classList.remove('hidden');
-              } else {
-                optGroup.classList.add('hidden');
+              // Hide opt-groups with no options matched
+              O.optDiv[0].querySelectorAll('li.group').forEach(optGroup => {
+                if (optGroup.querySelector('li:not(.hidden)')) {
+                  optGroup.classList.remove('hidden');
+                } else {
+                  optGroup.classList.add('hidden');
+                }
+              });
+
+              P.html(settings.noMatch.replace(/\{0\}/g, '<em></em>')).toggle(!hid.length);
+              P.find('em').text(O.ftxt.val());
+              if (settings.searchHighlight) {
+                O.Highlight(O.ftxt.val());
               }
-            });
-
-            P.html(settings.noMatch.replace(/\{0\}/g, '<em></em>')).toggle(!hid.length);
-            P.find('em').text(O.ftxt.val());
-            if (settings.searchHighlight) {
-              O.Highlight(O.ftxt.val());
-            }
-            O.selAllState();
+              O.selAllState();
+            }, 300);
           });
         },
 

@@ -61,6 +61,7 @@
       selectAllPartialCheck: true,  // Display a disabled checkbox in multiselect mode when all the items are not selected.
       search: false,                // to display input for filtering content. selectAlltext will be input text placeholder
       searchText: 'Search...',      // placeholder for search input
+      searchHighlight: false,       // highlight search text
       searchFn(haystack, needle) { // search function
         return haystack.toLowerCase().indexOf(needle.toLowerCase()) < 0;
       },
@@ -68,6 +69,7 @@
       prefix: '',                   // some prefix usually the field name. eg. '<b>Hello</b>'
       locale: ['OK', 'Cancel', 'Select All', 'Clear all'],  // all text that is used. don't change the index.
       up: false,                    // set true to open upside.
+      showClearButton: false,       // set true to show clear button
       showTitle: true,              // set to false to prevent title (tooltip) from appearing
       clearAll: false,              // im multi select - clear all checked options
       closeAfterClearAll: false,    // im multi select - close select after clear
@@ -358,6 +360,34 @@
           O.optDiv.prepend(O.selAll);
         },
 
+        HighlightReset() {
+          const O = this;
+          O.optDiv.find('li:has(strong)').each(function() {
+            $jq(this).html($jq(this).text());
+          });
+        },
+
+        Highlight(searchTerm) {
+          const O = this;
+          if (!searchTerm) {
+            O.HighlightReset();
+            return;
+        }
+    
+        searchTerm = searchTerm.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+        const searchRegex = new RegExp(`(${searchTerm})`, 'i');
+    
+        const matchingElements = O.optDiv.find('li').filter(function() {
+            return searchRegex.test($jq(this).text());
+        });
+    
+        matchingElements.each(function() {
+            const li = $jq(this);
+            const text = li.text();
+            li.html(text.replace(searchRegex, '<strong>$1</strong>'));
+        });
+        },
+
         // search module (can be removed if not required.)
         Search() {
           const O = this,
@@ -392,6 +422,9 @@
 
             P.html(settings.noMatch.replace(/\{0\}/g, '<em></em>')).toggle(!hid.length);
             P.find('em').text(O.ftxt.val());
+            if (settings.searchHighlight) {
+              O.Highlight(O.ftxt.val());
+            }
             O.selAllState();
           });
         },
@@ -416,6 +449,18 @@
           }
         },
 
+        ClearButton(selectedIndex) {
+          const O = this;
+          const clearButton = $jq('<i class="ion-md-close sumo-clear"></i>');
+          clearButton.on('click', function(ev) {
+            ev.stopPropagation();
+            O.unSelectItem(selectedIndex);
+            O.toggSelAll(false, 1);
+            O.hideOpts();
+          });
+          return clearButton;
+        },
+
         showOpts() {
           const O = this;
           if (O.E.attr('disabled')) return; // if select is disabled then retrun
@@ -427,6 +472,11 @@
           const firstSelected = O.optDiv.find('li.opt.selected').first();
           if (firstSelected.length) {
             O.optDiv.find('.options').scrollTop(firstSelected.position().top);
+            if (settings.showClearButton) {
+              if (firstSelected.index()) {
+                firstSelected.prepend(O.ClearButton(firstSelected.index()));
+              }
+            }
           } else {
             O.optDiv.find('.options').scrollTop(0);
           }
@@ -484,6 +534,9 @@
             O.E.trigger('sumo:closing', O);
             O.is_opened = false;
             O.select.removeClass('open').attr('aria-expanded', 'false').find('ul li.sel').removeClass('sel');
+            if (settings.showClearButton) {
+              O.optDiv.find('i.sumo-clear').remove();
+            }
             O.E.trigger('sumo:closed', O);
             $(document).off('click.sumo');
             $('body').removeClass('sumoStopScroll');
